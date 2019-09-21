@@ -2,12 +2,15 @@ package org.apache.minibase;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Optional;
 
 public interface MiniBase extends Closeable {
 
   void put(byte[] key, byte[] value) throws IOException;
 
   KeyValue get(byte[] key) throws IOException;
+
+  Optional<KeyValue> getByBloomFilter(byte[] key) throws IOException;
 
   void delete(byte[] key) throws IOException;
 

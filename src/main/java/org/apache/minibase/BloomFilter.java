@@ -1,5 +1,7 @@
 package org.apache.minibase;
 
+import static org.apache.minibase.DiskFile.BLOOM_FILTER_HASH_COUNT;
+
 public class BloomFilter {
   private int k;
   private int bitsPerKey;
@@ -32,10 +34,16 @@ public class BloomFilter {
 
   public boolean contains(byte[] key) {
     assert result != null;
+    return contains(result, key);
+  }
+
+  public static boolean contains(byte[] bloomFilter, byte[] key) {
+    int k = BLOOM_FILTER_HASH_COUNT;
+    int bitLen = bloomFilter.length * 8;
     int h = Bytes.hash(key);
     for (int t = 0; t < k; t++) {
       int idx = (h % bitLen + bitLen) % bitLen;
-      if ((result[idx / 8] & (1 << (idx % 8))) == 0) {
+      if ((bloomFilter[idx / 8] & (1 << (idx % 8))) == 0) {
         return false;
       }
       int delta = (h >> 17) | (h << 15);

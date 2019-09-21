@@ -9,9 +9,15 @@ import org.apache.minibase.KeyValue.Op;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static org.apache.minibase.DiskFile.BLOOM_FILTER_BITS_PER_KEY;
+import static org.apache.minibase.DiskFile.BLOOM_FILTER_HASH_COUNT;
+import static org.apache.minibase.KeyValue.Op.Delete;
 
 public class MStore implements MiniBase {
   private static final Logger LOG = Logger.getLogger(MStore.class);
@@ -73,6 +79,33 @@ public class MStore implements MiniBase {
   @Override
   public KeyValue get(byte[] key) throws IOException {
     return this.blockCache.get(key);
+  }
+
+  @Override
+  public Optional<KeyValue> getByBloomFilter(byte[] key) throws IOException {
+    KeyValue result = null;
+    List<SeekIter<KeyValue>> iterList = new ArrayList<>();
+    iterList.add(memStore.createIterator());
+
+    List<DiskFile> diskFiles = diskStore.getDiskFiles();
+    for (DiskFile diskFile : diskFiles) {
+      Set<DiskFile.BlockMeta> metas = diskFile.getMetas();
+      for (DiskFile.BlockMeta meta : metas) {
+        byte[] bloomFilter = meta.getBloomFilter();
+        if (BloomFilter.contains(bloomFilter, key)) {
+          iterList.add(diskFile.iterator());
+        }
+      }
+    }
+
+    MultiIter it = new MultiIter(iterList);
+    if (it.hasNext()) {
+      KeyValue kv = it.next();
+      if (Bytes.compare(kv.getKey(), key) == 0) {
+        result = kv;
+      }
+    }
+    return result == null || result.getOp().equals(Delete) ? Optional.empty() : Optional.of(result);
   }
 
   @Override
@@ -152,7 +185,7 @@ public class MStore implements MiniBase {
             throw new IOException(msg);
           }
           // Same key with lastKV, should continue to fetch the next key value.
-        } else if (curKV.getOp() == Op.Delete) {
+        } else if (curKV.getOp() == Delete) {
           if (lastKV == null || Bytes.compare(lastKV.getKey(), curKV.getKey()) != 0) {
             lastKV = curKV;
           }

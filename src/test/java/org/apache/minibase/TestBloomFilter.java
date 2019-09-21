@@ -15,12 +15,21 @@ public class TestBloomFilter {
     for (int i = 0; i < keys.length; i++) {
       keyBytes[i] = keys[i].getBytes();
     }
-    bf.generate(keyBytes);
+    byte[] generatedBytes = bf.generate(keyBytes);
+
     Assert.assertTrue(bf.contains(Bytes.toBytes("hi")));
-    Assert.assertFalse(bf.contains(Bytes.toBytes("h")));
+    Assert.assertFalse(bf.contains(generatedBytes, Bytes.toBytes("h")));
     Assert.assertFalse(bf.contains(Bytes.toBytes("he")));
     Assert.assertTrue(bf.contains(Bytes.toBytes("hello world")));
     Assert.assertTrue(bf.contains(Bytes.toBytes("bloom")));
     Assert.assertTrue(bf.contains(Bytes.toBytes("key")));
+
+    Assert.assertTrue(BloomFilter.contains(generatedBytes, Bytes.toBytes("hi")));
+    Assert.assertFalse(BloomFilter.contains(generatedBytes, Bytes.toBytes("h")));
+    Assert.assertFalse(BloomFilter.contains(generatedBytes, Bytes.toBytes("he")));
+    Assert.assertTrue(BloomFilter.contains(generatedBytes, Bytes.toBytes("hello world")));
+    Assert.assertTrue(BloomFilter.contains(generatedBytes, Bytes.toBytes("bloom")));
+    Assert.assertTrue(BloomFilter.contains(generatedBytes, Bytes.toBytes("key")));
+
   }
 }

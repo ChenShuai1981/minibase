@@ -8,11 +8,7 @@ import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
@@ -262,6 +258,7 @@ public class DiskFile implements Closeable {
   public static class BlockReader {
 
     private List<KeyValue> kvBuf;
+    private BloomFilter bloomFilter;
 
     public BlockReader(List<KeyValue> kvBuf) {
       this.kvBuf = kvBuf;
@@ -297,6 +294,8 @@ public class DiskFile implements Closeable {
     public List<KeyValue> getKeyValues() {
       return kvBuf;
     }
+
+    public BloomFilter getBloomFilter() { return bloomFilter; }
   }
 
   public static class DiskFileWriter implements Closeable {
@@ -448,6 +447,10 @@ public class DiskFile implements Closeable {
 
     assert blockMetaSet.size() == this.blockCount : "blockMetaSet.getSerializeSize:" + blockMetaSet.size()
         + ", blockCount: " + blockCount;
+  }
+
+  public Set<BlockMeta> getMetas() {
+    return this.blockMetaSet;
   }
 
   public String getFileName() {
