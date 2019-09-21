@@ -9,14 +9,11 @@ import org.apache.minibase.KeyValue.Op;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.apache.minibase.DiskFile.BLOOM_FILTER_BITS_PER_KEY;
-import static org.apache.minibase.DiskFile.BLOOM_FILTER_HASH_COUNT;
 import static org.apache.minibase.KeyValue.Op.Delete;
 
 public class MStore implements MiniBase {
@@ -31,6 +28,9 @@ public class MStore implements MiniBase {
   private DefaultWal wal;
 
   private BlockCache blockCache;
+
+  private AtomicLong totalGets = new AtomicLong(0);
+  private AtomicLong totalBloomFilters = new AtomicLong(0);
 
   public MiniBase open() throws IOException {
     assert conf != null;
@@ -82,7 +82,8 @@ public class MStore implements MiniBase {
   }
 
   @Override
-  public Optional<KeyValue> getByBloomFilter(byte[] key) throws IOException {
+  public KeyValue getByBloomFilter(byte[] key) throws IOException {
+    totalGets.incrementAndGet();
     KeyValue result = null;
     List<SeekIter<KeyValue>> iterList = new ArrayList<>();
     iterList.add(memStore.createIterator());
@@ -94,6 +95,9 @@ public class MStore implements MiniBase {
         byte[] bloomFilter = meta.getBloomFilter();
         if (BloomFilter.contains(bloomFilter, key)) {
           iterList.add(diskFile.iterator());
+        } else {
+          // filter out DiskFile
+          totalBloomFilters.incrementAndGet();
         }
       }
     }
@@ -105,7 +109,9 @@ public class MStore implements MiniBase {
         result = kv;
       }
     }
-    return result == null || result.getOp().equals(Delete) ? Optional.empty() : Optional.of(result);
+    float bloomFilterRate = this.totalBloomFilters.get() * 1.0f / this.totalGets.get() * 1.0f;
+    LOG.info("Bloom filter rate: " + String.format("%.2f", bloomFilterRate * 100f) + "%");
+    return (result == null || result.getOp().equals(Delete)) ? null : result;
   }
 
   @Override

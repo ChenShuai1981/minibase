@@ -54,7 +54,10 @@ public class BlockCache {
             totalGetReqsThroughCache.incrementAndGet();
             Optional<KeyValue> result = Optional.ofNullable(null);
             try {
-                result = miniBase.getByBloomFilter(key);
+                KeyValue kv = miniBase.getByBloomFilter(key);
+                if (kv != null) {
+                    result = Optional.of(kv);
+                }
             } catch (IOException e) {
                 LOG.error("Error when load key " + key + " to cache", e);
             }

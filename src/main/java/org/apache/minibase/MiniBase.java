@@ -10,7 +10,7 @@ public interface MiniBase extends Closeable {
 
   KeyValue get(byte[] key) throws IOException;
 
-  Optional<KeyValue> getByBloomFilter(byte[] key) throws IOException;
+  KeyValue getByBloomFilter(byte[] key) throws IOException;
 
   void delete(byte[] key) throws IOException;
 
