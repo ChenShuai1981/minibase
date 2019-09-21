@@ -42,6 +42,11 @@ public interface MiniBase extends Closeable {
     void flush(Iter<KeyValue> it) throws IOException;
   }
 
+  interface Wal {
+    void add(KeyValue kv) throws IOException;
+    void truncate() throws IOException;
+  }
+
   abstract class Compactor extends Thread {
     public abstract void compact() throws IOException;
   }

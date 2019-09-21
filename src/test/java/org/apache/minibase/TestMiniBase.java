@@ -17,12 +17,18 @@ import java.util.List;
 public class TestMiniBase {
 
   private String dataDir;
+  private String walDir;
 
   @Before
   public void setUp() {
-    dataDir = "target/minihbase-" + System.currentTimeMillis();
-    File f = new File(dataDir);
-    Assert.assertTrue(f.mkdirs());
+    long ts = System.currentTimeMillis();
+    dataDir = "target/minihbase-" + ts;
+    walDir = "target/minihbase-wal-" + ts;
+    File data = new File(dataDir);
+    Assert.assertTrue(data.mkdirs());
+
+    File wal = new File(walDir);
+    Assert.assertTrue(wal.mkdirs());
   }
 
   @After
@@ -63,7 +69,7 @@ public class TestMiniBase {
   @Test
   public void testPut() throws IOException, InterruptedException {
     // Set maxMemstoreSize to 64B, which make the memstore flush frequently.
-    Config conf = new Config().setDataDir(dataDir).setMaxMemstoreSize(1).setFlushMaxRetries(1)
+    Config conf = new Config().setDataDir(dataDir).setWalDir(walDir).setMaxMemstoreSize(1).setFlushMaxRetries(1)
             .setMaxDiskFiles(10);
     final MiniBase db = MStore.create(conf).open();
 
@@ -100,7 +106,7 @@ public class TestMiniBase {
 
   @Test
   public void testMixedOp() throws Exception {
-    Config conf = new Config().setDataDir(dataDir).setMaxMemstoreSize(2 * 1024 * 1024);
+    Config conf = new Config().setDataDir(dataDir).setWalDir(walDir).setMaxMemstoreSize(2 * 1024 * 1024);
     MiniBase db = MStore.create(conf).open();
 
     byte[] A = Bytes.toBytes("A");

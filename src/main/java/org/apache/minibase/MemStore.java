@@ -33,9 +33,9 @@ public class MemStore implements Closeable {
 
   private Config conf;
   private Flusher flusher;
-  private Wal wal;
+  private MiniBase.Wal wal;
 
-  public MemStore(Config conf, Wal wal, Flusher flusher, ExecutorService pool) {
+  public MemStore(Config conf, MiniBase.Wal wal, Flusher flusher, ExecutorService pool) {
     this.conf = conf;
     this.wal = wal;
     this.flusher = flusher;

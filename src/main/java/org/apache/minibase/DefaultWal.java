@@ -3,34 +3,32 @@ package org.apache.minibase;
 import java.io.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class Wal {
+public class DefaultWal implements MiniBase.Wal {
 
     private Config conf;
     private WalWriter walWriter;
     private final AtomicLong dataSize = new AtomicLong();
 
-    public Wal(Config config) throws IOException {
+    public DefaultWal(Config config) throws IOException {
         this.conf = config;
         dataSize.set(0);
         String fileName = new File(conf.getWalDir(), "wal.log").toString();
         walWriter = new WalWriter(fileName);
     }
 
+    @Override
     public void add(KeyValue kv) throws IOException {
         walWriter.append(kv);
         dataSize.addAndGet(kv.getSerializeSize());
-        if (getDataSize() > conf.getMaxWalSize()) {
+        if (dataSize.get() > conf.getMaxWalSize()) {
             truncate();
         }
     }
 
+    @Override
     public void truncate() throws IOException {
         walWriter.truncate();
         dataSize.set(0);
-    }
-
-    public long getDataSize() {
-        return dataSize.get();
     }
 
     public static class WalWriter implements Closeable {

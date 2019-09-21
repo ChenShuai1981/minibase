@@ -21,7 +21,7 @@ public class MStore implements MiniBase {
   private AtomicLong sequenceId;
 
   private Config conf;
-  private Wal wal;
+  private DefaultWal wal;
 
   public MiniBase open() throws IOException {
     assert conf != null;
@@ -35,7 +35,7 @@ public class MStore implements MiniBase {
     // TODO initialize the max sequence id here.
     this.sequenceId = new AtomicLong(0);
 
-    this.wal = new Wal(conf);
+    this.wal = new DefaultWal(conf);
     // initialize the memstore.
     this.memStore = new MemStore(conf, wal, new DefaultFlusher(diskStore), pool);
 
