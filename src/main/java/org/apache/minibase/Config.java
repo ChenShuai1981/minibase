@@ -9,8 +9,19 @@ public class Config {
   private String walDir = "MiniBase";
   private int maxDiskFiles = 10;
   private int maxThreadPoolSize = 5;
+  private int maxBlockCacheSize = 1000;
 
   private static final Config DEFAULT = new Config();
+
+  public Config setMaxBlockCacheSize(int maxBlockCacheSize) {
+    this.maxBlockCacheSize = maxBlockCacheSize;
+    return this;
+  }
+
+  public int getMaxBlockCacheSize() {
+    return this.maxBlockCacheSize;
+  }
+
 
   public Config setMaxMemstoreSize(long maxMemstoreSize) {
     this.maxMemstoreSize = maxMemstoreSize;

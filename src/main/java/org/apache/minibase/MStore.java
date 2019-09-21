@@ -1,5 +1,6 @@
 package org.apache.minibase;
 
+import org.apache.log4j.Logger;
 import org.apache.minibase.DiskStore.DefaultCompactor;
 import org.apache.minibase.DiskStore.DefaultFlusher;
 import org.apache.minibase.DiskStore.MultiIter;
@@ -13,7 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MStore implements MiniBase {
-
+  private static final Logger LOG = Logger.getLogger(MStore.class);
   private ExecutorService pool;
   private MemStore memStore;
   private DiskStore diskStore;
@@ -22,6 +23,8 @@ public class MStore implements MiniBase {
 
   private Config conf;
   private DefaultWal wal;
+
+  private BlockCache blockCache;
 
   public MiniBase open() throws IOException {
     assert conf != null;
@@ -41,6 +44,9 @@ public class MStore implements MiniBase {
 
     this.compactor = new DefaultCompactor(diskStore);
     this.compactor.start();
+
+    this.blockCache = new BlockCache(conf.getMaxBlockCacheSize(), this);
+
     return this;
   }
 
@@ -61,23 +67,17 @@ public class MStore implements MiniBase {
     KeyValue kv = KeyValue.createPut(key, value, sequenceId.incrementAndGet());
     this.wal.add(kv);
     this.memStore.add(kv);
+    this.blockCache.put(key, kv);
   }
 
   @Override
   public KeyValue get(byte[] key) throws IOException {
-    KeyValue result = null;
-    Iter<KeyValue> it = scan(key, Bytes.EMPTY_BYTES);
-    if (it.hasNext()) {
-      KeyValue kv = it.next();
-      if (Bytes.compare(kv.getKey(), key) == 0) {
-        result = kv;
-      }
-    }
-    return result;
+    return this.blockCache.get(key);
   }
 
   @Override
   public void delete(byte[] key) throws IOException {
+    this.blockCache.delete(key);
     this.memStore.add(KeyValue.createDelete(key, sequenceId.incrementAndGet()));
   }
 
