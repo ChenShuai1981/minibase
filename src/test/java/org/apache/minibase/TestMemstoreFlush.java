@@ -39,10 +39,11 @@ public class TestMemstoreFlush {
   public void testBlockingPut() throws Exception {
     ExecutorService pool = Executors.newFixedThreadPool(1);
     try {
-      Config conf = new Config().setMaxMemstoreSize(1);
+      Config conf = new Config().setMaxMemstoreSize(1).setMaxWalSize(1);
 
       SleepAndFlusher flusher = new SleepAndFlusher();
-      MemStore memstore = new MemStore(conf, flusher, pool);
+      Wal wal = new Wal(conf);
+      MemStore memstore = new MemStore(conf, wal, flusher, pool);
       memstore.add(KeyValue.createPut(Bytes.toBytes(1), Bytes.toBytes(1), 1L));
       assertEquals(memstore.getDataSize(), 25);
 
@@ -77,8 +78,9 @@ public class TestMemstoreFlush {
   public void testAddPutAndDelete() throws Exception {
     ExecutorService pool = Executors.newFixedThreadPool(1);
     try {
-      Config conf = new Config().setMaxMemstoreSize(2 * 1024 * 1024);
-      MemStore store = new MemStore(conf, new SleepAndFlusher(), pool);
+      Config conf = new Config().setMaxMemstoreSize(2 * 1024 * 1024).setMaxWalSize(2 * 1024 * 1024);
+      Wal wal = new Wal(conf);
+      MemStore store = new MemStore(conf, wal, new SleepAndFlusher(), pool);
       for (int i = 99; i >= 0; i--) {
         KeyValue kv;
         byte[] bytes = Bytes.toBytes(i);
@@ -110,8 +112,9 @@ public class TestMemstoreFlush {
   public void testSeqIdAndOpOrder() throws Exception {
     ExecutorService pool = Executors.newFixedThreadPool(1);
     try {
-      Config conf = new Config().setMaxMemstoreSize(2 * 1024 * 1024);
-      MemStore store = new MemStore(conf, new SleepAndFlusher(), pool);
+      Config conf = new Config().setMaxMemstoreSize(2 * 1024 * 1024).setMaxWalSize(2 * 1024 * 1024);
+      Wal wal = new Wal(conf);
+      MemStore store = new MemStore(conf, wal, new SleepAndFlusher(), pool);
       byte[] bs = Bytes.toBytes(1);
       KeyValue kv1 = KeyValue.createPut(bs, bs, 1);
       KeyValue kv2 = KeyValue.createPut(bs, bs, 2);

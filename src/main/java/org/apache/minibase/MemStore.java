@@ -33,9 +33,11 @@ public class MemStore implements Closeable {
 
   private Config conf;
   private Flusher flusher;
+  private Wal wal;
 
-  public MemStore(Config conf, Flusher flusher, ExecutorService pool) {
+  public MemStore(Config conf, Wal wal, Flusher flusher, ExecutorService pool) {
     this.conf = conf;
+    this.wal = wal;
     this.flusher = flusher;
     this.pool = pool;
 
@@ -94,6 +96,9 @@ public class MemStore implements Closeable {
         // TODO MemStoreIter may find the kvMap changed ? should synchronize ?
         kvMap = new ConcurrentSkipListMap<>();
         dataSize.set(0);
+        wal.truncate();
+      } catch (IOException e) {
+        LOG.error("Failed to truncate WAL file", e);
       } finally {
         updateLock.writeLock().unlock();
       }

@@ -21,6 +21,7 @@ public class MStore implements MiniBase {
   private AtomicLong sequenceId;
 
   private Config conf;
+  private Wal wal;
 
   public MiniBase open() throws IOException {
     assert conf != null;
@@ -34,8 +35,9 @@ public class MStore implements MiniBase {
     // TODO initialize the max sequence id here.
     this.sequenceId = new AtomicLong(0);
 
+    this.wal = new Wal(conf);
     // initialize the memstore.
-    this.memStore = new MemStore(conf, new DefaultFlusher(diskStore), pool);
+    this.memStore = new MemStore(conf, wal, new DefaultFlusher(diskStore), pool);
 
     this.compactor = new DefaultCompactor(diskStore);
     this.compactor.start();
@@ -56,7 +58,9 @@ public class MStore implements MiniBase {
 
   @Override
   public void put(byte[] key, byte[] value) throws IOException {
-    this.memStore.add(KeyValue.createPut(key, value, sequenceId.incrementAndGet()));
+    KeyValue kv = KeyValue.createPut(key, value, sequenceId.incrementAndGet());
+    this.wal.add(kv);
+    this.memStore.add(kv);
   }
 
   @Override
