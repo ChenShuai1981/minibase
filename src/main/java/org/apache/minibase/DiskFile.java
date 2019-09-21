@@ -510,23 +510,41 @@ public class DiskFile implements Closeable {
       currentReader = null;
       if (blockMetaIter.hasNext()) {
         currentReader = load(blockMetaIter.next());
-        currentKVIndex = 0;
-        // Locate the smallest KV which is greater than or equals to the given KV. We're sure that
-        // we can find the currentKVIndex, because lastKV of the block is greater than or equals
-        // to the target KV.
-        while (currentKVIndex < currentReader.getKeyValues().size()) {
-          KeyValue curKV = currentReader.getKeyValues().get(currentKVIndex);
-          if (curKV.compareTo(target) >= 0) {
-            break;
-          }
-          currentKVIndex++;
-        }
+        List<KeyValue> kvs = currentReader.getKeyValues();
+        // 使用二分查找
+        currentKVIndex = binarySearch(kvs, target);
         if (currentKVIndex >= currentReader.getKeyValues().size()) {
           throw new IOException("Data block mis-encoded, lastKV of the currentReader >= kv, but " +
                                 "we found all kv < target");
         }
       }
     }
+  }
+
+  private static int binarySearch(List<KeyValue> kvs, KeyValue target) {
+    int low = 0;
+    int high = kvs.size() - 1;
+    int middle = 0;            //定义middle
+
+    if (target.compareTo(kvs.get(low)) < 0 || target.compareTo(kvs.get(high)) > 0 || low > high) {
+      return -1;
+    }
+
+    while (low <= high) {
+      middle = (low + high) / 2;
+      if (kvs.get(middle).compareTo(target) > 0) {
+        //比关键字大则关键字在左区域
+        high = middle - 1;
+      } else if (kvs.get(middle).compareTo(target) < 0) {
+        //比关键字小则关键字在右区域
+        low = middle + 1;
+      } else {
+        return middle;
+      }
+    }
+
+    //最后仍然没有找到，则返回-1
+    return -1;
   }
 
   public SeekIter<KeyValue> iterator() {
